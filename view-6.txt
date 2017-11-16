@@ -1,0 +1,133 @@
+### 属性动画
+
+	属性动画的刷新频率：可以自定义设置。默认 10ms 刷新一次，具体要看系统总体的繁忙程度和 how fast the system can service the underlying timer。
+
+# ViewPropertyAnimator
+	- 使用步骤： View.animate() 后跟 translationX() 等方法，动画会自动执行。view.animate().translationX(500); 
+
+	- 方法和方法对应的 View 中实际操作的方法：
+
+		  View 中的方法					功能					对应的 ViewPropertyAnimator 中的方法
+
+		setTanslationX（）			设置 X 轴偏移				tanslationX（） 	tanslationXBy（）
+		setTanslationY（）			设置 Y 轴偏移				tanslationY（） 	tanslationYBy（）
+		setTanslationZ（）			设置 Z 轴偏移				tanslationZ（） 	tanslationZBy（）
+
+			setX（） 				设置 X 轴绝对位置				x（）  				xBy（）
+			setY（） 				设置 Y 轴绝对位置				y（）  				yBy（）
+			setZ（） 				设置 Z 轴绝对位置				z（）  				zBy（）
+
+		setRoatation（）			设置平面旋转				rotation（） 		rotationBy（）
+		setRoatationX（）			设置沿 X 轴旋转				rotationX（） 		rotationXBy（）
+		setRoatationY（）			设置沿 Y 轴旋转				rotationY（） 		rotationYBy（）
+
+		setScaleX（）				设置横向缩放				scaleX（） 			scaleXBy（）
+		setScaleY（）				设置纵向缩放				scaleY（） 			scaleYBy（）
+
+		setAlpha（）				设置透明度 					alpha（） 			alphaBy（）
+
+		- PS：带有 -By() 后缀的是增量版本的方法。translationX(100) 表示用动画把 View 的 translationX 值渐变为 100，而 translationXBy(100) 则表示用动画把 View 的 translationX 值渐变地增加 100
+
+# ObjectAnimator
+	- 使用步骤：
+		1. 如果是自定义控件，需要添加 setter / getter 方法（setter方法中要手动调用 invalidate（）来不断的刷新动画）；
+		2. 用 ObjectAnimator.ofXXX() 创建 ObjectAnimator 对象；
+		3. 用 start() 方法执行动画。
+
+# 通用设置：
+	* setDuration(int duration) ：设置动画时长
+
+	* setInterpolator(Interpolator interpolator) ：设置 Interpolator，即速度设置器（动画完成度/时间完成度曲线）。设置不同的 Interpolator ，动画就会以不同的速度模型来执行
+
+		- AccelerateDecelerateInterpolator：先加速再减速，是默认的 Interpolator
+			效果：最符合现实中物体运动的 Interpolator，动画效果就像是物体从速度为 0 开始逐渐加速，然后再逐渐减速直到 0 的运动。它的速度 / 时间曲线以及动画完成度 / 时间曲线都是一条正弦 / 余弦曲线。
+
+		- LinearInterpolator：匀速
+
+		- AccelerateInterpolator：持续加速，到动画结束的一瞬间直接停止
+			场景：主要用在离场效果中，比如实现某个物体从界面中飞离。它给人的感觉就会是「这货从零起步，加速飞走了」。到了最后动画骤停的时候，物体已经飞出用户视野
+
+		- DecelerateInterpolator：持续减速，从开始是最高速，持续减速直到停止
+			场景：主要用于入场效果，比如某个物体从界面的外部飞入界面后停在某处。它给人的感觉会是「咦飞进来个东西，让我仔细看看，哦原来是 XXX」。
+
+		- AnticipateInterpolator：先回拉一下再进行正常动画轨迹。效果看起来有点像投掷物体或跳跃等动作前的蓄力，耍花样用的
+
+		- OvershootInterpolator：动画会超过目标值一些，然后再弹回来。效果看起来有点像你一屁股坐在沙发上后又被弹起来一点的感觉。耍花样 +1
+
+		- AnticipateOvershootInterpolator：上面两个的组合版，开始前回拉，最后超过一些然后回弹。耍花样 +100
+
+		- BounceInterpolator：在目标值处弹跳。有点像玻璃球掉在地板上的效果。耍花样 +10086
+
+		- CycleInterpolator：也是一个正弦 / 余弦曲线。
+			和 AccelerateDecelerateInterpolator的区别是：可以自定义曲线的周期，所以动画可以不到终点就结束，也可以到达终点后回弹，回弹的次数由曲线的周期决定，曲线的周期由 CycleInterpolator() 构造方法的参数决定。
+
+		- PathInterpolator：自定义动画完成度 / 时间完成度曲线，定制的方式是使用一个 Path 对象来绘制出你要的动画完成度 / 时间完成度曲线
+			例1：
+				Path interpolatorPath = new Path();
+				...
+
+				// 匀速
+				interpolatorPath.lineTo(1, 1);  
+
+			例2：
+				Path interpolatorPath = new Path();
+				...
+
+				// 先以「动画完成度 : 时间完成度 = 1 : 1」的速度匀速运行 25%
+				interpolatorPath.lineTo(0.25f, 0.25f);  
+				// 然后瞬间跳跃到 150% 的动画完成度
+				interpolatorPath.moveTo(0.25f, 1.5f);  
+				// 再匀速倒车，返回到目标点
+				interpolatorPath.lineTo(1, 1);
+
+			注意：Path 描述的其实是一个 y = f(x) (0 ≤ x ≤ 1) （y 为动画完成度，x 为时间完成度）的曲线。所以同一段时间完成度上不能有两段不同的动画完成度（因为内容不能出现分身术），而每一个时间完成度的点上都必须要有对应的动画完成度（因为内容不能在某段时间段内消失）
+
+	  * Android 5.0 （API 21）引入了三个新的 Interpolator 模型，并把它们加入了 support v4 
+		- FastOutLinearInInterpolator：加速运动
+			- 和 AccelerateInterpolator 的区别：
+				1. 都是一个持续加速的运动路线。只是 FastOutLinearInInterpolator 的曲线公式是用的贝塞尔曲线，而 AccelerateInterpolator 用的是指数曲线。具体来说，它俩最主要的区别是  FastOutLinearInInterpolator 的初始阶段加速度比 AccelerateInterpolator 要快一些。
+				2. 其实实际运用中两个速度模型几乎一样，而且，AccelerateInterpolator 还可以在构造方法中调节变速系数，分分钟调节到和 FastOutLinearInInterpolator （几乎）一模一样
+
+		- FastOutSlowInInterpolator：先加速后减速
+			- 和 AccelerateDecelerateInterpolator 的区别：
+				1. 曲线：FastOutSlowInInterpolator 用的是贝塞尔曲线，AccelerateDecelerateInterpolator 用的是正弦 / 余弦曲线。
+				2. 效果：FastOutSlowInInterpolator 的前期加速更猛一些，后期的减速过程的也减得更迅速AccelerateDecelerateInterpolator 像是物体的自我移动，而 FastOutSlowInInterpolator则看起来像有一股强大的外力「推」着它加速，在接近目标值之后又「拽」着它减速。总之，FastOutSlowInterpolator 看起来有一点「着急」的感觉
+
+		- LinearOutSlowInInterpolator：持续减速
+			- 和 DecelerateInterpolator 的区别：LinearOutSlowInInterpolator 的初始速度更高。对于人眼的实际感觉，区别其实也不大
+
+
+	* 监听器：
+		ViewPropertyAnimator：
+			设置：
+				1. setListener() 、setUpdateListener() ，可以设置一个监听器
+				2. withStartAction() 和 withEndAction()，设置一次性的动画开始或结束的监听
+			移除：set[Update]Listener(null)
+
+		ObjectAnimator：
+			设置：
+				1. addListener() 、addUpdateListener()，添加一个或多个监听器
+				2. addPauseListener() / removePauseListener()，因为 ObjectAnimator 支持使用 pause() 方法暂停
+			移除：remove[Update]Listener()
+
+		— ViewPropertyAnimator.setListener() / ObjectAnimator.addListener()：方法名和设置的监听器数量都不同，但参数类型都是 AnimatorListener，本质是相同的
+			- onAnimationStart(Animator animation)：当动画开始执行时。
+
+			- onAnimationEnd(Animator animation)：当动画结束时。
+
+			- onAnimationCancel(Animator animation)：当动画被通过 cancel() 方法取消时。
+				注：动画被取消，onAnimationEnd() 也会被调用。所以当动画被取消时，如果设置了  AnimatorListener，那么 onAnimationCancel() 和 onAnimationEnd() 都会被调用。onAnimationCancel() 会先于 onAnimationEnd() 被调用。
+
+			- onAnimationRepeat(Animator animation)：当动画通过 setRepeatMode() / setRepeatCount() 或 repeat() 方法重复执行时，这个方法被调用。
+				注：由于 ViewPropertyAnimator 不支持重复，所以这个方法对 ViewPropertyAnimator 相当于无效。
+
+		— ViewPropertyAnimator.setUpdateListener() / ObjectAnimator.addUpdateListener()：同上，两个方法本质的一样的
+			- onAnimationUpdate(ValueAnimator animation)：当动画的属性更新时（不严谨的说，即每过 10 毫秒，动画的完成度更新时），这个方法被调用。
+				参数：ValueAnimator 是 ObjectAnimator 的父类，也是 ViewPropertyAnimator 的内部实现，所以这个参数其实就是 ViewPropertyAnimator 内部的那个 ValueAnimator，或者对于 ObjectAnimator 来说就是它自己本身。ValueAnimator 有很多方法，查看当前的动画完成度、属性值等
+
+		— ObjectAnimator.addPauseListener()
+		
+		— ViewPropertyAnimator.withStartAction/EndAction()：是 ViewPropertyAnimator 的独有方法
+				1. 回调是一次性的，在动画执行结束后就自动弃掉，即使再重用 ViewPropertyAnimator 来做别的动画，用它们设置的回调也不会再被调用。而 set/addListener() 所设置的 AnimatorListener 是持续有效的，当动画重复执行时，回调总会被调用。
+
+				2. withEndAction() 设置的回调只有在动画正常结束时才会被调用，而在被取消时不会被执行。这和 AnimatorListener.onAnimationEnd() 的行为是不一致的。
